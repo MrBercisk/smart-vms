@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CheckInRequest;
 use App\Mail\VisitorArrivedMail;
 use App\Services\VisitService;
 use Barryvdh\DomPDF\Facade\Pdf;
