@@ -17,20 +17,34 @@ class AppointmentService
     {
         $data['appointment_number'] = $this->generateNumber();
         $data['status'] = 'pending';
-        return $this->repo->create($data);
+        $appointment  =  $this->repo->create($data);
+
+        AuditLogService::log('create_appointment', 'Appointment', $appointment->toArray());
+
+        return $appointment;
     }
 
     public function approve(int $id): Appointment
     {
-        return $this->repo->update($id, ['status' => 'approved']);
+        $old = $this->repo->find($id)->toArray();
+        $appointment = $this->repo->update($id, ['status' => 'approved']);
+
+        AuditLogService::log('approve_appointment', 'Appointment', $appointment->toArray(), $old);
+
+        return $appointment;
     }
 
     public function reject(int $id, string $reason): Appointment
     {
-        return $this->repo->update($id, [
-            'status' => 'rejected',
+        $old = $this->repo->find($id)->toArray();
+        $appointment = $this->repo->update($id, [
+            'status'           => 'rejected',
             'rejection_reason' => $reason,
         ]);
+
+        AuditLogService::log('reject_appointment', 'Appointment', $appointment->toArray(), $old);
+
+        return $appointment;
     }
 
     public function update(int $id, array $data): Appointment
