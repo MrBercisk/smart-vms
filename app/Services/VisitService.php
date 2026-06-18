@@ -45,6 +45,8 @@ class VisitService
 
         $visit->update(['qr_code' => $qrPath]);
 
+        AuditLogService::log('check_in', 'Visit', $visit->toArray());
+
         return $visit->fresh(['visitor','employee','department']);
     }
 
@@ -66,6 +68,7 @@ class VisitService
             'status'           => 'checked_out',
         ]);
 
+        AuditLogService::log('check_out', 'Visit', $visit->toArray());
         return $visit->fresh(['visitor','employee','department']);
     }
 
