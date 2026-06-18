@@ -27,9 +27,7 @@ class AppointmentApprovedMail extends Mailable
      */
     public function envelope(): Envelope
     {
-        return new Envelope(
-            subject: 'Appointment Approved Mail',
-        );
+        return new Envelope(subject: 'Appointment Anda Telah Disetujui');
     }
 
     /**
@@ -37,9 +35,7 @@ class AppointmentApprovedMail extends Mailable
      */
     public function content(): Content
     {
-        return new Content(
-            view: 'view.name',
-        );
+        return new Content(view: 'emails.appointment-approved');
     }
 
     /**
