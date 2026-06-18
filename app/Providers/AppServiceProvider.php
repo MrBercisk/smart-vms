@@ -8,9 +8,11 @@ use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use App\Repositories\Interfaces\VisitorRepositoryInterface;
 use App\Repositories\Eloquent\EloquentVisitorRepository;
+use App\Repositories\Eloquent\EloquentVisitRepository;
 use App\Repositories\Interfaces\AppointmentRepositoryInterface;
 use App\Repositories\Interfaces\DepartmentRepositoryInterface;
 use App\Repositories\Interfaces\EmployeeRepositoryInterface;
+use App\Repositories\Interfaces\VisitRepositoryInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(DepartmentRepositoryInterface::class, EloquentDepartmentRepository::class);
         $this->app->bind(EmployeeRepositoryInterface::class, EloquentEmployeeRepository::class);
         $this->app->bind(AppointmentRepositoryInterface::class, EloquentAppointmentRepository::class);
+        $this->app->bind(VisitRepositoryInterface::class, EloquentVisitRepository::class);
     }
 
     public function boot(): void
