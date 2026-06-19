@@ -16,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
+        // sanctum  ini yang membuat route di api.php bisa pakai session cookie dari web
+          $middleware->statefulApi();
 
         //
     })
