@@ -47,22 +47,28 @@
 
 <script setup>
 import { Link, usePage } from '@inertiajs/vue3'
+import { computed } from 'vue'
 
 defineProps({ show: Boolean })
 defineEmits(['close'])
 
 const page = usePage()
+const permissions = computed(() => page.props.auth.user?.permissions ?? [])
 
-const menu = [
-    { label: 'Dashboard',    icon: '📊', route: 'dashboard' },
-    { label: 'Departemen',   icon: '🏢', route: 'departments.index' },
-    { label: 'Karyawan',     icon: '👤', route: 'employees.index' },
-    { label: 'Tamu',         icon: '🙋', route: 'visitors.index' },
-    { label: 'Appointment',  icon: '📅', route: 'appointments.index' },
-    { label: 'Kunjungan',    icon: '✅', route: 'visits.index' },
-    { label: 'Laporan',      icon: '📄', route: 'reports.index' },
-    { label: 'Audit Log',    icon: '🔍', route: 'audit-logs.index' },
+const allMenu = [
+    { label: 'Dashboard',    icon: '📊', route: 'dashboard',          permission: 'view dashboard' },
+    { label: 'Departemen',   icon: '🏢', route: 'departments.index',  permission: 'manage departments' },
+    { label: 'Karyawan',     icon: '👤', route: 'employees.index',    permission: 'manage employees' },
+    { label: 'Tamu',         icon: '🙋', route: 'visitors.index',     permission: null }, // semua role login
+    { label: 'Appointment',  icon: '📅', route: 'appointments.index', permission: null },
+    { label: 'Kunjungan',    icon: '✅', route: 'visits.index',       permission: 'checkin visitor' },
+    { label: 'Laporan',      icon: '📄', route: 'reports.index',      permission: 'view reports' },
+    { label: 'Audit Log',    icon: '🔍', route: 'audit-logs.index',   permission: 'manage roles' },
 ]
+
+const menu = computed(() =>
+    allMenu.filter(item => !item.permission || permissions.value.includes(item.permission))
+)
 
 const isActive = (routeName) => {
     return page.url.startsWith('/' + routeName.replace('.index', '').replace('.', '/'))

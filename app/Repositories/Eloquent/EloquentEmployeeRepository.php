@@ -8,7 +8,7 @@ use App\Repositories\Interfaces\EmployeeRepositoryInterface;
 class EloquentEmployeeRepository implements EmployeeRepositoryInterface
 {
     public function all() { 
-        return Employee::with('department')->get(); 
+        return Employee::with('department:id,department_name')->get(); 
     }
     public function find(int $id) { 
         return Employee::with('department')->findOrFail($id); 

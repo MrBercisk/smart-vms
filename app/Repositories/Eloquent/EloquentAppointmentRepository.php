@@ -10,8 +10,11 @@ use App\Repositories\Interfaces\DepartmentRepositoryInterface;
 class EloquentAppointmentRepository implements AppointmentRepositoryInterface
 {
     public function all() {
-        return Appointment::with(['visitor','employee','department'])
-            ->latest()->get();
+        return Appointment::with([
+            'visitor:id,full_name,company_name',
+            'employee:id,employee_name',
+            'department:id,department_name',
+        ])->latest()->get();
     }
     public function find(int $id) {
         return Appointment::with(['visitor','employee','department'])

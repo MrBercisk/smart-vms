@@ -1,14 +1,11 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use App\Models\Appointment;
 use App\Models\Visit;
-use Illuminate\Http\Request;
+use App\Models\Appointment;
 
 class DashboardController extends Controller
 {
-    // Summary cards
     public function summary()
     {
         return response()->json([
@@ -26,7 +23,6 @@ class DashboardController extends Controller
         ]);
     }
 
-    // Visitor trend 7 hari terakhir
     public function trend()
     {
         $data = Visit::selectRaw('DATE(arrival_time) as date, COUNT(*) as total')
@@ -38,24 +34,18 @@ class DashboardController extends Controller
         return response()->json($data);
     }
 
-    // Visitor per departemen
     public function byDepartment()
     {
-        $data = Visit::selectRaw('department_id, COUNT(*) as total')
-            ->with('department:id,department_name')
-            ->whereMonth('arrival_time', now()->month)
-            ->groupBy('department_id')
+        $data = Visit::join('departments', 'visits.department_id', '=', 'departments.id')
+            ->selectRaw('departments.department_name, COUNT(*) as total')
+            ->whereMonth('visits.arrival_time', now()->month)
+            ->groupBy('departments.id', 'departments.department_name')
             ->orderByDesc('total')
-            ->get()
-            ->map(fn($v) => [
-                'department' => $v->department->department_name,
-                'total'      => $v->total,
-            ]);
+            ->get();
 
         return response()->json($data);
     }
 
-    // Peak hours
     public function peakHours()
     {
         $data = Visit::selectRaw('HOUR(arrival_time) as hour, COUNT(*) as total')
@@ -72,53 +62,41 @@ class DashboardController extends Controller
         return response()->json($data);
     }
 
-    // Top 5 most visited employee
     public function topEmployees()
     {
-        $data = Visit::selectRaw('employee_id, COUNT(*) as total')
-            ->with('employee:id,employee_name')
-            ->whereMonth('arrival_time', now()->month)
-            ->groupBy('employee_id')
+        $data = Visit::join('employees', 'visits.employee_id', '=', 'employees.id')
+            ->selectRaw('employees.employee_name, COUNT(*) as total')
+            ->whereMonth('visits.arrival_time', now()->month)
+            ->groupBy('employees.id', 'employees.employee_name')
             ->orderByDesc('total')
             ->limit(5)
-            ->get()
-            ->map(fn($v) => [
-                'employee' => $v->employee->employee_name,
-                'total'    => $v->total,
-            ]);
+            ->get();
 
         return response()->json($data);
     }
 
-    // Top 5 most visited department
     public function topDepartments()
     {
-        $data = Visit::selectRaw('department_id, COUNT(*) as total')
-            ->with('department:id,department_name')
-            ->whereMonth('arrival_time', now()->month)
-            ->groupBy('department_id')
+        $data = Visit::join('departments', 'visits.department_id', '=', 'departments.id')
+            ->selectRaw('departments.department_name, COUNT(*) as total')
+            ->whereMonth('visits.arrival_time', now()->month)
+            ->groupBy('departments.id', 'departments.department_name')
             ->orderByDesc('total')
             ->limit(5)
-            ->get()
-            ->map(fn($v) => [
-                'department' => $v->department->department_name,
-                'total'      => $v->total,
-            ]);
+            ->get();
 
         return response()->json($data);
     }
 
-    // KPI metrics
     public function kpi()
     {
         $visits = Visit::where('status', 'checked_out')
             ->whereMonth('arrival_time', now()->month)
+            ->select('duration_minutes')
             ->get();
 
-        $totalVisits   = $visits->count();
-        $avgDuration   = $totalVisits > 0
-            ? round($visits->avg('duration_minutes'))
-            : 0;
+        $totalVisits = $visits->count();
+        $avgDuration = $totalVisits > 0 ? round($visits->avg('duration_minutes')) : 0;
 
         $currentMonth  = Visit::whereMonth('arrival_time', now()->month)
             ->whereYear('arrival_time', now()->year)
