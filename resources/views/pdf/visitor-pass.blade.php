@@ -1,4 +1,3 @@
-<!-- resources/views/pdf/visitor-pass.blade.php -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -37,7 +36,7 @@
         <div class="value">{{ $visit->visitor->full_name }}</div>
     </div>
     <div class="row">
-        <div class="label">Perusahaan</div>
+        <div class="label">Perusahaan/Instansi</div>
         <div class="value">{{ $visit->visitor->company_name ?? '-' }}</div>
     </div>
     <div class="row">
@@ -58,7 +57,7 @@
     </div>
 
     <div class="qr">
-        {!! $qr !!}
+        <img src="{{ $qrImage }}" width="150" height="150" />
     </div>
 </div>
 </body>

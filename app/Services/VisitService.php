@@ -39,13 +39,12 @@ class VisitService
         ]);
 
         // Generate QR Code
-        $qr = QrCode::format('svg')->size(200)->generate($visitNumber);
+        $checkoutUrl = url('/checkout?visit=' . $visitNumber);
+        $qr = QrCode::format('svg')->size(200)->generate($checkoutUrl);
         $qrPath = 'visits/qrcodes/' . $visitNumber . '.svg';
         Storage::disk('public')->put($qrPath, $qr);
 
         $visit->update(['qr_code' => $qrPath]);
-
-        AuditLogService::log('check_in', 'Visit', $visit->toArray());
 
         return $visit->fresh(['visitor','employee','department']);
     }

@@ -6,6 +6,13 @@ use Inertia\Inertia;
 
 Route::get('/', fn() => redirect()->route('dashboard'));
 
+// buat tamu 
+Route::get('/checkin', fn() => Inertia::render('PublicCheckin/Index'))
+    ->name('public.checkin');
+
+Route::get('/checkout', fn() => Inertia::render('PublicCheckout/Index'))
+    ->name('public.checkout');
+
 Route::middleware('auth')->group(function () {
 
     Route::get('/dashboard', fn() => Inertia::render('Dashboard/Index'))

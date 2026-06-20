@@ -5,11 +5,24 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\PublicCheckinController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\VisitController;
 use App\Http\Controllers\VisitorController;
 use Illuminate\Support\Facades\Route;
 
+
+Route::middleware(\Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class)
+    ->group(function () {
+        Route::get('public/departments', [PublicCheckinController::class, 'departments']);
+        Route::get('public/employees',   [PublicCheckinController::class, 'employees']);
+        Route::post('public/checkin',    [PublicCheckinController::class, 'checkin']);
+        Route::get('public/visits/{id}/pass', [PublicCheckinController::class, 'printPass']);
+
+        // Tcekout
+        Route::get('public/visits/lookup/{visitNumber}', [PublicCheckinController::class, 'lookup']);
+        Route::post('public/checkout', [PublicCheckinController::class, 'checkout']);
+    });
 Route::middleware('auth')->group(function () {
 
     // Dashboard — semua role login bisa lihat, tapi beda data per role nanti
