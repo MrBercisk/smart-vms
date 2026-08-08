@@ -1,0 +1,55 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smart-vms
+    restart: unless-stopped
+    ports:
+      - "8001:80"
+      - "5173:5173"
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - smart-vms-network
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.0
+    container_name: smart-vms-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: smart_vms
+      MYSQL_USER: smart_vms_user
+      MYSQL_PASSWORD: smart_vms_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    ports:
+      - "3308:3306"
+    volumes:
+      - smart-vms-mysql-data:/var/lib/mysql
+    networks:
+      - smart-vms-network
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: smart-vms-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: root_pass
+    ports:
+      - "8081:80"
+    networks:
+      - smart-vms-network
+    depends_on:
+      - mysql
+
+networks:
+  smart-vms-network:
+    driver: bridge
+
+volumes:
+  smart-vms-mysql-data:
+    driver: local

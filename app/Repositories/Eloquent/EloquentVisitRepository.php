@@ -2,14 +2,16 @@
 namespace App\Repositories\Eloquent;
 
 use App\Models\Visit;
-use App\Models\Visitor;
-use App\Repositories\Interfaces\VisitorRepositoryInterface;
 use App\Repositories\Interfaces\VisitRepositoryInterface;
 
 class EloquentVisitRepository implements VisitRepositoryInterface
 {
     public function all() {
-        return Visit::with(['visitor','employee','department'])->latest()->get();
+        return Visit::with([
+            'visitor:id,full_name,company_name,photo',
+            'employee:id,employee_name',
+            'department:id,department_name',
+        ])->latest()->get();
     }
     public function find(int $id) {
         return Visit::with(['visitor','employee','department'])->findOrFail($id);

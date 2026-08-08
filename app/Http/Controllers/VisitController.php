@@ -57,11 +57,12 @@ class VisitController extends Controller
 
     public function printPass(int $id) {
         $visit = $this->service->find($id);
-        $qr    = Storage::disk('public')->get($visit->qr_code);
+        $qrContent = Storage::disk('public')->get($visit->qr_code);
+        $qrBase64  = 'data:image/svg+xml;base64,' . base64_encode($qrContent);
 
         $pdf = Pdf::loadView('pdf.visitor-pass', [
-            'visit' => $visit,
-            'qr'    => $qr,
+            'visit'   => $visit,
+            'qrImage' => $qrBase64,
         ])->setPaper([0, 0, 400, 500]);
 
         return $pdf->stream('visitor-pass-' . $visit->visit_number . '.pdf');
