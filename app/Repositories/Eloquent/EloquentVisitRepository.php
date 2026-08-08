@@ -2,8 +2,6 @@
 namespace App\Repositories\Eloquent;
 
 use App\Models\Visit;
-use App\Models\Visitor;
-use App\Repositories\Interfaces\VisitorRepositoryInterface;
 use App\Repositories\Interfaces\VisitRepositoryInterface;
 
 class EloquentVisitRepository implements VisitRepositoryInterface

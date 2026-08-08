@@ -3,9 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Models\Appointment;
-use App\Models\Department;
 use App\Repositories\Interfaces\AppointmentRepositoryInterface;
-use App\Repositories\Interfaces\DepartmentRepositoryInterface;
 
 class EloquentAppointmentRepository implements AppointmentRepositoryInterface
 {

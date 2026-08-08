@@ -92,7 +92,7 @@ class PublicCheckinController extends Controller
             'visit_number' => $visit->visit_number,
             'visitor_name' => $visit->visitor->full_name,
             'employee'     => $visit->employee->employee_name,
-            'message'      => 'Check-in berhasil! Silakan tunggu, Anda akan segera dijemput.',
+            'message'      => 'Check-in berhasil! Silakan tunggu',
         ], 201);
     }
 
