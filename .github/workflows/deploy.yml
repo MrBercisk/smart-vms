@@ -1,9 +1,11 @@
-name: Deploy Smart VMS ke Jagoan Hosting (cPanel)
+name: Deploy Smart VMS ke Domainesia (cPanel)
 
 on:
   push:
     branches:
       - main
+      - migrasi-domainesia # sementara, hapus setelah migrasi selesai
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -16,6 +18,8 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.2"
+          extensions: mbstring, pdo_mysql, bcmath, fileinfo
+          coverage: none
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -26,9 +30,9 @@ jobs:
       - name: Validasi Composer
         run: composer validate --no-check-all
 
-      # Build vendor di GitHub karena Composer dibatasi di hosting
+      # Build vendor di GitHub supaya tidak bergantung pada Composer di hosting
       - name: Install Composer dependencies
-        run: composer install --no-dev --optimize-autoloader --no-interaction
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
 
       # Build asset Vite sebelum dikirim ke server
       - name: Build frontend
@@ -36,9 +40,11 @@ jobs:
           npm ci
           npm run build
 
-      # Hapus file Git yang tidak diperlukan di server
-      - name: Hapus folder .git
+      # node_modules dan .git tidak dibutuhkan di server
+      - name: Bersihkan file yang tidak perlu
         run: |
+          rm -rf node_modules
+
           chmod -R u+w .git 2>/dev/null || true
           rm -rf .git
 
@@ -47,7 +53,7 @@ jobs:
             exit 1
           fi
 
-          echo "OK: folder .git sudah dihapus"
+          echo "OK: node_modules dan .git sudah dihapus"
 
       # Upload aplikasi, vendor, dan hasil build ke hosting
       - name: Upload aplikasi ke server
@@ -56,7 +62,7 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 45022
+          port: ${{ secrets.SSH_PORT }}
           source: "."
           target: "~/public_html/smart-vms"
           rm: false
@@ -69,18 +75,19 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 45022
-          envs: APP_URL,DB_HOST,DB_DATABASE,DB_USERNAME,DB_PASSWORD,DB_PORT
+          port: ${{ secrets.SSH_PORT }}
+          envs: APP_URL,APP_KEY,DB_HOST,DB_DATABASE,DB_USERNAME,DB_PASSWORD,DB_PORT
           script: |
-            set -e
-
             cd ~/public_html/smart-vms
 
-            # Buat .env jika belum tersedia
+            PHP_BIN="/opt/alt/php82/usr/bin/php"
+
+            # Buat .env jika belum tersedia (harus sebelum artisan dipakai)
             if [ ! -f .env ]; then
               cat > .env <<EOF
             APP_NAME="Smart VMS"
             APP_ENV=production
+            APP_KEY=${APP_KEY}
             APP_DEBUG=false
             APP_URL=${APP_URL}
 
@@ -101,24 +108,38 @@ jobs:
               echo ".env sudah ada, tidak ditimpa"
             fi
 
-            # Jalankan migration
-            php artisan migrate --force
+            # Pastikan situs SELALU keluar dari mode maintenance,
+            # walau migrate/step lain gagal.
+            trap '$PHP_BIN artisan up || true' EXIT
 
-            # Cache konfigurasi Laravel
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+            set -e
 
-            # Buat storage tanpa symlink karena hosting memblokir symlink
-            mkdir -p public/storage
+            $PHP_BIN artisan down || true
 
-            # Set permission Laravel
-            chmod -R 775 storage bootstrap/cache public/storage
+            # Backup database sebelum migrate, simpan maksimal 5 terakhir.
+            mkdir -p storage/backups
+            DB_DATABASE=$(grep -m1 '^DB_DATABASE=' .env | cut -d '=' -f2-)
+            DB_USERNAME=$(grep -m1 '^DB_USERNAME=' .env | cut -d '=' -f2-)
+            DB_PASSWORD=$(grep -m1 '^DB_PASSWORD=' .env | cut -d '=' -f2-)
+            BACKUP_FILE="storage/backups/backup_$(date +%Y%m%d_%H%M%S).sql"
+            MYSQL_PWD="$DB_PASSWORD" mysqldump -u "$DB_USERNAME" "$DB_DATABASE" > "$BACKUP_FILE" || echo "WARNING: backup gagal, lanjut deploy tanpa backup"
+            ls -t storage/backups/backup_*.sql 2>/dev/null | tail -n +6 | xargs -r rm --
+
+            $PHP_BIN artisan migrate --force
+            $PHP_BIN artisan storage:link || true
+
+            $PHP_BIN artisan optimize:clear
+            $PHP_BIN artisan optimize
+
+            $PHP_BIN artisan queue:restart || true
+
+            chmod -R 775 storage bootstrap/cache
 
             echo "===== DEPLOY SMART VMS BERHASIL ====="
 
         env:
           APP_URL: ${{ secrets.APP_URL }}
+          APP_KEY: ${{ secrets.APP_KEY }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_DATABASE: ${{ secrets.DB_DATABASE }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
