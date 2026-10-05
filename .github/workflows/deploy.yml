@@ -26,35 +26,31 @@ jobs:
       - name: Validasi Composer
         run: composer validate --no-check-all
 
-      # Jagoan Hosting blokir eval() (DISEVAL) sehingga composer TIDAK BISA
-      # dijalankan langsung di server. Solusinya: build vendor/ di runner ini,
-      # lalu kirim hasilnya ke server via SCP.
-      - name: Composer install (di runner, bukan di server)
+      # Build vendor di GitHub karena Composer dibatasi di hosting
+      - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader --no-interaction
 
-      # Build asset frontend (Vite) di runner, karena npm/node belum tentu
-      # tersedia atau diizinkan berjalan penuh di shared hosting.
-      - name: Install & build frontend
+      # Build asset Vite sebelum dikirim ke server
+      - name: Build frontend
         run: |
           npm ci
           npm run build
 
-      # Folder .git tidak dibutuhkan di server, dan ekstraksi file
-      # internalnya (pack/idx/rev) sering gagal karena permission
-      # saat di-untar di server (Permission denied). File pack/idx/rev
-      # di .git kadang read-only, jadi di-chmod dulu supaya rm -rf pasti
-      # berhasil, lalu diverifikasi benar-benar hilang.
-      - name: Hapus folder .git sebelum di-SCP
+      # Hapus file Git yang tidak diperlukan di server
+      - name: Hapus folder .git
         run: |
           chmod -R u+w .git 2>/dev/null || true
           rm -rf .git
+
           if [ -d .git ]; then
             echo "GAGAL: folder .git masih ada!"
             exit 1
           fi
-          echo "OK: folder .git sudah bersih"
 
-      - name: Sync kode + vendor + build ke server via SCP
+          echo "OK: folder .git sudah dihapus"
+
+      # Upload aplikasi, vendor, dan hasil build ke hosting
+      - name: Upload aplikasi ke server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -66,7 +62,8 @@ jobs:
           rm: false
           overwrite: true
 
-      - name: Jalankan migrate & cache di server
+      # Jalankan konfigurasi dan optimasi Laravel di server
+      - name: Setup Laravel di server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -79,6 +76,7 @@ jobs:
 
             cd ~/public_html/smart-vms
 
+            # Buat .env jika belum tersedia
             if [ ! -f .env ]; then
               cat > .env <<EOF
             APP_NAME="Smart VMS"
@@ -97,24 +95,28 @@ jobs:
             CACHE_STORE=database
             QUEUE_CONNECTION=database
             EOF
-              echo ".env berhasil dibuat, jangan lupa lengkapi variabel lain manual (MAIL_*, dll)"
+
+              echo ".env berhasil dibuat"
             else
               echo ".env sudah ada, tidak ditimpa"
             fi
 
+            # Jalankan migration
             php artisan migrate --force
 
+            # Cache konfigurasi Laravel
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
 
-            # Server ini blokir symlink (storage:link menghasilkan 403),
-            # jadi file public disimpan langsung di public/storage, bukan symlink.
+            # Buat storage tanpa symlink karena hosting memblokir symlink
             mkdir -p public/storage
 
+            # Set permission Laravel
             chmod -R 775 storage bootstrap/cache public/storage
 
             echo "===== DEPLOY SMART VMS BERHASIL ====="
+
         env:
           APP_URL: ${{ secrets.APP_URL }}
           DB_HOST: ${{ secrets.DB_HOST }}
